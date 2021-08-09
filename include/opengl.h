@@ -4,15 +4,13 @@
 #define GL_GLEXT_PROTOTYPES
 #define GLX_GLXEXT_PROTOTYPES
 
-#include <X11/Xlib.h>
 #include <GL/gl.h>
-#include <GL/glx.h>
+#include <GL/glext.h>
 #include <GL/glu.h>
+#include <GL/glx.h>
+#include <X11/Xlib.h>
 
-// This includes the new stuff, supplied by the application
-#include "GL/glext.h"
-
-int win_width, win_height;
+extern int win_width, win_height;
 
 void initGL();
 void swapBuffers();

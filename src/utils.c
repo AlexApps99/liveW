@@ -1,264 +1,50 @@
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
+#include <unistd.h>
+
 #include "utils.h"
 
-float getUnixTime()
-{
-	struct timeval tv;
-	gettimeofday(&tv, 0);
-	return (float)((int)tv.tv_sec % 1000000) + (float)(tv.tv_usec) / 1.0e6;
+float getUnixTime() {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (float)((int)tv.tv_sec % 1000000) + (float)(tv.tv_usec) / 1.0e6;
 }
 
-char *getSystemTime()
-{
-	char *format;
+char *getSystemTime() {
+    char *format;
 
-	time_t rawtime;
-	struct tm * timeinfo;
+    time_t rawtime;
+    struct tm *timeinfo;
 
-	time(&rawtime);
-	timeinfo = localtime(&rawtime);
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
 
-	format = (char *)malloc(16);
+    format = (char *)malloc(16);
 
-	sprintf(format, "%02d:%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+    sprintf(format, "%02d:%02d:%02d", timeinfo->tm_hour, timeinfo->tm_min,
+            timeinfo->tm_sec);
 
-	return format;
+    return format;
 }
 
-int exec(char *cmd, char *buf, int size)
-{
-	FILE *fp;
+int exec(char *cmd, char *buf, int size) {
+    FILE *fp;
 
-	fp = popen(cmd, "r");
-	if (fp == NULL) {
-		return -1;
-	}
+    fp = popen(cmd, "r");
+    if (fp == NULL) {
+        return -1;
+    }
 
-	fgets(buf, size, fp);
+    fgets(buf, size, fp);
 
-	pclose(fp);
+    pclose(fp);
 
     if (buf[strlen(buf) - 1] == '\n')
         buf[strlen(buf) - 1] = '\0';
 
-	return 0;
-}
-
-int getSongInfo(char *artist, char *title, int *position, int *length)
-{
-	char buff[256];
-	char newArtist[128], newTitle[128];
-	buff[0] = newArtist[0] = newTitle[0] = '\0';
-
-    // Get artist
-	if (exec("playerctl metadata artist", buff, sizeof(buff))) {
-		printf("Playerctl doesn't exist\n");
-		return -1;
-	}
-
-	if (strlen(buff))
-		strcpy(newArtist, buff);
-
-    // Get length
-    if (exec("playerctl metadata mpris:length", buff, sizeof(buff))) {
-		printf("Playerctl doesn't exist\n");
-		return -1;
-    }
-    buff[strlen(buff)-6] = '\0';
-    sscanf(buff, "%d", length);
-
-    // Get position
-    if (exec("playerctl position", buff, sizeof(buff))) {
-		printf("Playerctl doesn't exist\n");
-		return -1;
-    }
-    sscanf(buff, "%d", position);
-	
-    // Get title
-	if (exec("playerctl metadata title", buff, sizeof(buff))) {
-		printf("Playerctl doesn't exist\n");
-		return -1;
-	}
-
-	if (strlen(newArtist)) {
-        if (!strcmp(artist, newArtist) && !strcmp(title, buff))
-		    return 0;
-		strcpy(artist, newArtist);
-		strcpy(title, buff);
-		return 1;
-	}
-
-	if (!strlen(buff)) {
-		artist[0] = title[0] = '\0';
-		exec("rm --force image.jpg", buff, sizeof(buff));
-		return 2;
-	}
-
-	bool dash = false;
-	int artistPos = 0, titlePos = 0;
-	for (int i = 0; i < strlen(buff); i++) {
-		if (i && buff[i-1] == ' ' && buff[i] == '-' && buff[i+1] == ' ') {
-			dash = true;
-			i++;
-			continue;
-		}
-
-		if (dash && (buff[i] == '(' || buff[i] == '['))
-			break;
-
-		if (!dash) {
-			newArtist[artistPos++] = buff[i];
-		} else {
-			newTitle[titlePos++] = buff[i];
-		}
-	}
-	newArtist[artistPos] = newTitle[titlePos] = '\0';
-
-	if (!strlen(newTitle)) {
-		strcpy(newTitle, newArtist);
-		newArtist[0] = '\0';
-	}
-
-	if (strlen(newTitle) && newTitle[strlen(newTitle)-1] == ' ')
-		newTitle[strlen(newTitle)-1] = '\0';
-
-	if (strlen(newArtist) && newArtist[strlen(newArtist)-1] == ' ')
-		newArtist[strlen(newArtist)-1] = '\0';
-
-	if (!strcmp(artist, newArtist) && !strcmp(title, newTitle))
-		return 0;
-
-	strcpy(artist, newArtist);
-	strcpy(title, newTitle);
-
-	return 1;
-}
-
-void getAlbumArt(SongInfo *songInfo) {
-	char *cmd = NULL;
-	char buff[128];
-
-    if (!cfg.onlyYT) {
-        exec("playerctl metadata mpris:artUrl", buff, sizeof(buff));
-
-        if (strlen(buff)) {
-            cmd = (char *)malloc(strlen("curl -Ls --output image.jpg ") + strlen(buff));
-
-            sprintf(cmd, "curl -Ls --output image.jpg %s", buff);
-
-            if (!exec(cmd, buff, sizeof(buff))) {
-		        songInfo->newAlbumArt = true;
-                return;
-            }
-        }
-
-		cmd = (char *)malloc(20 + strlen(songInfo->artist) + strlen(songInfo->title));
-
-		sprintf(cmd, "./albumArt \"%s %s\"", songInfo->artist, songInfo->title);
-
-		if (exec(cmd, buff, sizeof(buff))) {
-			printf("albumArt script not found\n");
-			return;
-		}
-	
-		if (cfg.debug && strlen(buff))
-			printf("albumArt script output (%d): %s\n", (int)strlen(buff), buff);
-
-        if (buff[0] != 'A') {
-            songInfo->newAlbumArt = true;
-            if (cfg.debug)
-                printf("Found album art using discorg\n");
-
-            return;
-        }
-    }
-
-    if (cfg.debug)
-        printf("No album art found, using youtube thumbnail\n");
-
-    char videoID[12];
-
-    if (exec("playerctl metadata xesam:url", buff, sizeof(buff)) || !strlen(buff)) {
-        if (cfg.debug)
-            printf("No youtube video ID\n");
-        return;
-    }
-
-    int buffLength = strlen(buff);
-    if (cfg.debug)
-        printf("TrackID (%d): %s\n", buffLength, buff);
-
-    if (buffLength < 17) {
-        if (cfg.debug)
-            printf("No youtube video ID\n");
-        return;
-    }
-
-    int start = buffLength;
-
-    if (cfg.plasma) {
-        while (--start && ((buff[start] != '?' && buff[start] != '&') || buff[start+1] != 'v' || buff[start+2] != '='));
-
-        if (!start)
-            return;
-        start += 2;
-
-        for (int i = start + 1, j = 0; i < buffLength && j < 12; i++, j++)
-            videoID[j] = buff[i];
-    } else {
-        while (buff[--start] != '/');
-
-        for (int i = start + 1, j = 0; i < buffLength - 1 && j < 12; i++, j++) {
-            if (buff[i] == '_') {
-                if (buff[++i] == 'd')
-                    videoID[j] = '-';
-                else if (buff[++i] == 'u')
-                    videoID[j] = '_';
-            } else {
-                videoID[j] = buff[i];
-            }
-        }
-    }
-    
-    videoID[11] = '\0';
-
-    if (cfg.debug) 
-        printf("Video ID: %s\n", videoID);
-
-    free(cmd);
-    cmd = (char *)malloc(strlen("curl -o image.jpg -s https://i.ytimg.com/vi/zuJV-DAv_wE/maxresdefault.jpg") + 1);
-    sprintf(cmd, "curl -o image.jpg -s https://i.ytimg.com/vi/%s/maxresdefault.jpg", videoID);
-
-    if (exec(cmd, buff, sizeof(buff))) {
-        if (cfg.debug)
-            printf("Problem with downloding youtube thumbnail\n");
-        return;
-    }
-
-    songInfo->newAlbumArt = true;
-
-	free(cmd);
-}
-
-void *updateSongInfo(void *arg)
-{
-	SongInfo *songInfo = (struct SongInfo *)arg;
-
-	while (*songInfo->cont) {
-		int status = getSongInfo(songInfo->artist, songInfo->title, &songInfo->position, &songInfo->length);
-		if (status == -1)
-			return NULL;
-
-		if (cfg.debug)
-			printf("Artist: %s\nTitle: %s\n", songInfo->artist, songInfo->title);
-
-		if (status == 1)
-			getAlbumArt(songInfo);
-		else if (status == 2) {
-			songInfo->newAlbumArt = true;
-            songInfo->position = 0;
-            sleep(1);
-        }
-	}
-
-	return NULL;
+    return 0;
 }

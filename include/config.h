@@ -2,9 +2,9 @@
 #define _CONFIG_H_
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdio.h>
 
 struct config {
     int debug;
@@ -16,11 +16,10 @@ struct config {
     float width, height;
     float transparency;
     char *shaderName;
-    char *fontName;
     unsigned int fps;
-    bool dontDrawIfNoSound;
-    bool onlyYT;
-} cfg;
+};
+
+extern struct config cfg;
 
 void printHelp();
 bool parseArgs(int argc, char *argv[]);
