@@ -2,14 +2,10 @@
 #define _CONFIG_H_
 
 #include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
 struct config {
     int debug;
     char *src;
-    bool plasma;
     bool windowed;
     bool geometry;
     float offX, offY;

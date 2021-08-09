@@ -1,4 +1,10 @@
 #include "xwin.h"
+#include "config.h"
+#include "opengl.h"
+#include <X11/Xatom.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 void initWindow(xwin *win);
 void initBackground(xwin *win);
@@ -15,16 +21,6 @@ xwin *init_xwin() {
         initWindow(win);
     else
         initBackground(win);
-
-    if (cfg.plasma) {
-        long value =
-            XInternAtom(win->display, "_NET_WM_WINDOW_TYPE_DESKTOP", false);
-        XChangeProperty(win->display, win->window,
-                        XInternAtom(win->display, "_NET_WM_WINDOW_TYPE", false),
-                        XA_ATOM, 32, PropModeReplace, (unsigned char *)&value,
-                        1);
-        XMapWindow(win->display, win->window);
-    }
 
     if (cfg.transparency < 1.0) {
         uint32_t cardinal_alpha =

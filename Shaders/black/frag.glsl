@@ -11,8 +11,6 @@
 
 uniform vec2 resolution;
 uniform float time;
-uniform sampler1D samples;
-uniform sampler1D fft;
 out vec4 color;
 
 void main()

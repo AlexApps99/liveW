@@ -1,12 +1,14 @@
-#include <pthread.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <string.h>
-
 #include "config.h"
 #include "renderer.h"
 #include "shader.h"
 #include "utils.h"
+#include <pthread.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 bool cont = 1;
 struct config cfg;
@@ -47,10 +49,6 @@ int main(int argc, char *argv[]) {
         sprintf(fragPath, "Shaders/%s/frag.glsl", cfg.shaderName);
     }
     rend->progID = loadShaders(vertPath, fragPath);
-
-    // Load text shaders
-    rend->progText =
-        loadShaders("Shaders/text/vert.glsl", "Shaders/text/frag.glsl");
 
     linkBuffers(rend);
 

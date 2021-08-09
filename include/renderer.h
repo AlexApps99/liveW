@@ -1,21 +1,16 @@
 #ifndef _RENDERER_H
 #define _RENDERER_H
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <wchar.h>
 
-#include "config.h"
-#include "utils.h"
 #include "xwin.h"
+#include <GL/glx.h>
 
 typedef struct renderer {
     xwin *win;
-    GLuint progID, progText;
+    GLuint progID;
     GLXContext ctx;
 } renderer;
 
-extern GLuint vertArray, posBuf, VAO, VBO;
+extern GLuint vertArray, posBuf;
 
 renderer *init_rend();
 void linkBuffers(renderer *r);
