@@ -1,8 +1,8 @@
 #include "renderer.h"
-#include <GL/glu.h>
 
 GLuint vertArray, posBuf;
 
+#define STBI_ONLY_PNG
 #define STB_IMAGE_IMPLEMENTATION
 #include "config.h"
 #include "opengl.h"
@@ -124,7 +124,7 @@ void render(renderer *r) {
 void checkErrors(const char *desc) {
     GLenum e = glGetError();
     if (e != GL_NO_ERROR) {
-        printf("OpenGL error in \"%s\": %s (%d)\n", desc, gluErrorString(e), e);
+        printf("OpenGL error in \"%s\": %d\n", desc, e);
         exit(1);
     }
 }

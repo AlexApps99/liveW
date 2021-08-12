@@ -2,7 +2,6 @@
 #include "renderer.h"
 #include "shader.h"
 #include "utils.h"
-#include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
